@@ -13,7 +13,7 @@ path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'trips_data_all')
 
 DATASET = "tripdata"
-COLOUR_RANGE = {'yellow': 'tpep_pickup_datetime', 'green': 'lpep_pickup_datetime'}
+COLOUR_RANGE = {'yellow': 'tpep_pickup_datetime', 'fhv': 'pickup_datetime'}
 INPUT_PART = "raw"
 INPUT_FILETYPE = "parquet"
 
@@ -35,14 +35,14 @@ with DAG(
 ) as dag:
 
     for colour, ds_col in COLOUR_RANGE.items():
-        move_files_gcs_task = GCSToGCSOperator(
-            task_id=f'move_{colour}_{DATASET}_files_task',
-            source_bucket=BUCKET,
-            source_object=f'{INPUT_PART}/{colour}_{DATASET}*.{INPUT_FILETYPE}',
-            destination_bucket=BUCKET,
-            destination_object=f'{colour}/{colour}_{DATASET}',
-            move_object=True
-        )
+        # move_files_gcs_task = GCSToGCSOperator(
+        #     task_id=f'move_{colour}_{DATASET}_files_task',
+        #     source_bucket=BUCKET,
+        #     source_object=f'{INPUT_PART}/{colour}_{DATASET}*.{INPUT_FILETYPE}',
+        #     destination_bucket=BUCKET,
+        #     destination_object=f'{colour}/{colour}_{DATASET}',
+        #     move_object=True
+        # )
 
         bigquery_external_table_task = BigQueryCreateExternalTableOperator(
             task_id=f"bq_{colour}_{DATASET}_external_table_task",
