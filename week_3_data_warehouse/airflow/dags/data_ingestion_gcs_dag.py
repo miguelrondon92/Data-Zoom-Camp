@@ -17,8 +17,8 @@ BUCKET = os.environ.get("GCP_GCS_BUCKET")
 
 # dataset_file = "yellow_tripdata_2021-01.csv"
 # dataset_url = f"https://s3.amazonaws.com/nyc-tlc/trip+data/{dataset_file}"
-taxi_dataset_file = "yellow_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
-taxi_dataset_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/{taxi_dataset_file}"
+date_time_eop = "_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
+taxi_dataset_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/"
 
 fhv_dataset_file = "fhv_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
 fhv_dataset_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/{fhv_dataset_file}"
@@ -27,6 +27,7 @@ fhv_dataset_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/{fhv_dataset
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'trips_data_all')
 
+taxi_types = ["yellow", "green", "fhv"]
 
 # NOTE: takes 20 mins, at an upload speed of 800kbps. Faster if your internet has a better upload speed
 def upload_to_gcs(bucket, object_name, local_file):
@@ -59,77 +60,50 @@ default_args = {
 # NOTE: DAG declaration - using a Context Manager (an implicit way)
 with DAG(
     dag_id="data_ingestion_gcs_dag",
-    schedule_interval="@yearly",
+    schedule_interval="@monthly",
     default_args=default_args,
     start_date= datetime(2019, 1, 1), 
-    end_date= datetime(2022, 12, 30),
+    end_date= datetime(2021, 12, 30),
     catchup=True,
     max_active_runs=3,
     tags=['dtc-de'],
 ) as dag:
+    for taxi in taxi_types:
 
-    download_taxi_dataset_task = BashOperator(
-        task_id="download_taxi_dataset_task",
-        bash_command=f"curl -sSL {taxi_dataset_url} > {path_to_local_home}/{taxi_dataset_file}"
-    )
+        # echo_taxi = BashOperator(
+        #     task_id=f"echo_{taxi}_path",
+        #     bash_command=f"echo {taxi_dataset_url}{taxi}{date_time_eop}"
+        # )
 
-    download_fhv_dataset_task = BashOperator(
-        task_id="download_fhv_dataset_task",
-        bash_command=f"curl -sSL {fhv_dataset_url} > {path_to_local_home}/{fhv_dataset_file}"
-    )
-
-    # TODO: Homework - research and try XCOM to communicate output values between 2 tasks/operators
-    taxi_to_gcs_task = PythonOperator(
-        task_id="taxi_to_gcs_task",
-        python_callable=upload_to_gcs,
-        op_kwargs={
-            "bucket": BUCKET,
-            "object_name": f"yellow/{taxi_dataset_file}",
-            "local_file": f"{path_to_local_home}/{taxi_dataset_file}",
-        },
-    )
-
-    fhv_to_gcs_task = PythonOperator(
-        task_id="fhv_to_gcs_task",
-        python_callable=upload_to_gcs,
-        op_kwargs={
-            "bucket": BUCKET,
-            "object_name": f"fhv/{fhv_dataset_file}",
-            "local_file": f"{path_to_local_home}/{fhv_dataset_file}",
-        },
-    )
-
-
-    bigquery_external_table_task_taxi = BigQueryCreateExternalTableOperator(
-        task_id="taxi_bigquery_external_table_task",
-        table_resource={
-            "tableReference": {
-                "projectId": PROJECT_ID,
-                "datasetId": BIGQUERY_DATASET,
-                "tableId": "external_table",
+        download_taxi_dataset_task = BashOperator(
+            task_id=f"download_{taxi}_dataset_task",
+            bash_command=f"curl -sSL {taxi_dataset_url}{taxi}{date_time_eop} > {path_to_local_home}/{taxi}{date_time_eop}"
+        )
+        # TODO: Homework - research and try XCOM to communicate output values between 2 tasks/operators
+        taxi_to_gcs_task = PythonOperator(
+            task_id=f"{taxi}_to_gcs_task",
+            python_callable=upload_to_gcs,
+            op_kwargs={
+                "bucket": BUCKET,
+                "object_name": f"{taxi}/{taxi}{date_time_eop}",
+                "local_file": f"{path_to_local_home}/{taxi}{date_time_eop}",
             },
-            "externalDataConfiguration": {
-                "sourceFormat": "PARQUET",
-                "sourceUris": [f"gs://{BUCKET}/taxi/{taxi_dataset_file}"],
-            },
-        },
-    )
+        )
 
-    bigquery_external_table_task_fhv = BigQueryCreateExternalTableOperator(
-        task_id="fhv_bigquery_external_table_task",
-        table_resource={
-            "tableReference": {
-                "projectId": PROJECT_ID,
-                "datasetId": BIGQUERY_DATASET,
-                "tableId": "external_table",
+        bigquery_external_table_task_taxi = BigQueryCreateExternalTableOperator(
+            task_id=f"{taxi}_bigquery_external_table_task",
+            table_resource={
+                "tableReference": {
+                    "projectId": PROJECT_ID,
+                    "datasetId": BIGQUERY_DATASET,
+                    "tableId": "external_table",
+                },
+                "externalDataConfiguration": {
+                    "sourceFormat": "PARQUET",
+                    "sourceUris": [f"gs://{BUCKET}/{taxi}/{taxi}{date_time_eop}"],
+                },
             },
-            "externalDataConfiguration": {
-                "sourceFormat": "PARQUET",
-                "sourceUris": [f"gs://{BUCKET}/fhv/{fhv_dataset_file}"],
-            },
-        },
-    )
+        )
 
-    # download_dataset_task >> format_to_parquet_task >> local_to_gcs_task >> bigquery_external_table_task
-    download_taxi_dataset_task >> taxi_to_gcs_task >> bigquery_external_table_task_taxi
-    download_fhv_dataset_task >> fhv_to_gcs_task >> bigquery_external_table_task_fhv
+        # download_dataset_task >> format_to_parquet_task >> local_to_gcs_task >> bigquery_external_table_task
+        download_taxi_dataset_task >> taxi_to_gcs_task >> bigquery_external_table_task_taxi
