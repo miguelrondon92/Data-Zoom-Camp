@@ -13,8 +13,8 @@ path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'trips_data_all')
 
 DATASET = "tripdata"
-COLOUR_RANGE = {'yellow': 'tpep_pickup_datetime', 'fhv': 'pickup_datetime'}
-INPUT_PART = "raw"
+COLOUR_RANGE = {'yellow': 'tpep_pickup_datetime', 'fhv': 'pickup_datetime', 'green': 'lpep_pickup_datetime'}
+#INPUT_PART = "raw"
 INPUT_FILETYPE = "parquet"
 
 default_args = {
@@ -67,12 +67,19 @@ with DAG(
                 AS \
                 SELECT * EXCEPT (airport_fee) FROM {BIGQUERY_DATASET}.{colour}_{DATASET}_external_table;"
             )
-        else: 
+        elif colour == "fhv":  
             CREATE_BQ_TBL_QUERY = (
                 f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET}.{colour}_{DATASET} \
                 PARTITION BY DATE({ds_col}) \
                 AS \
                 SELECT * EXCEPT (SR_FLAG) FROM {BIGQUERY_DATASET}.{colour}_{DATASET}_external_table;"
+            )
+        else: 
+            CREATE_BQ_TBL_QUERY = (
+            f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET}.{colour}_{DATASET} \
+            PARTITION BY DATE({ds_col}) \
+            AS \
+            SELECT * FROM {BIGQUERY_DATASET}.{colour}_{DATASET}_external_table;"
             )
 
         # Create a partitioned table from external table
