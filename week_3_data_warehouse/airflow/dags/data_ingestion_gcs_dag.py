@@ -10,6 +10,7 @@ from google.cloud import storage
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
 import pyarrow.csv as pv
 import pyarrow.parquet as pq
+import pandas as pd 
 from datetime import datetime
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
@@ -20,12 +21,12 @@ BUCKET = os.environ.get("GCP_GCS_BUCKET")
 date_time_eop = "_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
 taxi_dataset_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/"
 
-fhv_dataset_file = "fhv_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
-fhv_dataset_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/{fhv_dataset_file}"
-
-
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'trips_data_all')
+
+fhv_schema = pass 
+yellow_schema = pass 
+green_schema = pass 
 
 taxi_types = ["yellow", "green", "fhv"]
 
@@ -49,6 +50,12 @@ def upload_to_gcs(bucket, object_name, local_file):
 
     blob = bucket.blob(object_name)
     blob.upload_from_filename(local_file)
+
+def transform_schema(parquet_file, taxi):
+    """
+    give implicit schema to parquet files 
+    """
+    pd.read_parquet(parquet_file)
 
 
 default_args = {
@@ -78,6 +85,11 @@ with DAG(
         download_taxi_dataset_task = BashOperator(
             task_id=f"download_{taxi}_dataset_task",
             bash_command=f"curl -sSL {taxi_dataset_url}{taxi}{date_time_eop} > {path_to_local_home}/{taxi}{date_time_eop}"
+        )
+
+        change_schema = PythonOperator(
+            task_id = f"{taxi}_schema_change",
+            python_callable=transform_schema 
         )
         # TODO: Homework - research and try XCOM to communicate output values between 2 tasks/operators
         taxi_to_gcs_task = PythonOperator(
