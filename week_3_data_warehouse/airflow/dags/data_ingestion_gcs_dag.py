@@ -16,8 +16,6 @@ from datetime import datetime
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 BUCKET = os.environ.get("GCP_GCS_BUCKET")
 
-# dataset_file = "yellow_tripdata_2021-01.csv"
-# dataset_url = f"https://s3.amazonaws.com/nyc-tlc/trip+data/{dataset_file}"
 date_time_eop = "_tripdata_{{ execution_date.strftime(\'%Y-%m\') }}.parquet"
 taxi_dataset_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/"
 
@@ -102,20 +100,20 @@ with DAG(
             },
         )
 
-        bigquery_external_table_task_taxi = BigQueryCreateExternalTableOperator(
-            task_id=f"{taxi}_bigquery_external_table_task",
-            table_resource={
-                "tableReference": {
-                    "projectId": PROJECT_ID,
-                    "datasetId": BIGQUERY_DATASET,
-                    "tableId": "external_table",
-                },
-                "externalDataConfiguration": {
-                    "sourceFormat": "PARQUET",
-                    "sourceUris": [f"gs://{BUCKET}/{taxi}/{taxi}{date_time_eop}"],
-                },
-            },
-        )
+        # bigquery_external_table_task_taxi = BigQueryCreateExternalTableOperator(
+        #     task_id=f"{taxi}_bigquery_external_table_task",
+        #     table_resource={
+        #         "tableReference": {
+        #             "projectId": PROJECT_ID,
+        #             "datasetId": BIGQUERY_DATASET,
+        #             "tableId": "external_table",
+        #         },
+        #         "externalDataConfiguration": {
+        #             "sourceFormat": "PARQUET",
+        #             "sourceUris": [f"gs://{BUCKET}/{taxi}/{taxi}{date_time_eop}"],
+        #         },
+        #     },
+        # )
 
         # download_dataset_task >> format_to_parquet_task >> local_to_gcs_task >> bigquery_external_table_task
-        download_taxi_dataset_task >> taxi_to_gcs_task >> bigquery_external_table_task_taxi
+        download_taxi_dataset_task >> taxi_to_gcs_task #>> bigquery_external_table_task_taxi
