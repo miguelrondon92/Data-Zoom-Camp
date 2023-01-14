@@ -5,6 +5,7 @@ from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+from helper import yellow_schema, green_schema, fhv_schema
 
 from google.cloud import storage
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
@@ -51,9 +52,19 @@ def upload_to_gcs(bucket, object_name, local_file):
 
 def transform_schema(parquet_file, taxi):
     """
-    give implicit schema to parquet files 
+    give explicit schema to parquet files 
     """
-    pd.read_parquet(parquet_file)
+    table = pq.read_table(parquet_file) 
+    fields = {
+        "yellow": yellow_schema,
+        "green": green_schema,
+        "fhv": fhv_schema
+    }
+
+    fields = fields.get(taxi)
+    new_schema = pa.schema(fields)
+    table = table.cast(new_schema)
+    pa.parquet.write_table(table, parquet_file)
 
 
 default_args = {
