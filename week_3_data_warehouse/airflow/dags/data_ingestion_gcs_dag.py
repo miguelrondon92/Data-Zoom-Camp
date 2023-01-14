@@ -98,7 +98,11 @@ with DAG(
 
         change_schema = PythonOperator(
             task_id = f"{taxi}_schema_change",
-            python_callable=transform_schema 
+            python_callable=transform_schema,
+            op_kwargs={
+                "parquet_file": f"{path_to_local_home}/{taxi}{date_time_eop}",
+                "taxi": {taxi}
+            }
         )
         # TODO: Homework - research and try XCOM to communicate output values between 2 tasks/operators
         taxi_to_gcs_task = PythonOperator(
@@ -127,4 +131,4 @@ with DAG(
         # )
 
         # download_dataset_task >> format_to_parquet_task >> local_to_gcs_task >> bigquery_external_table_task
-        download_taxi_dataset_task >> taxi_to_gcs_task #>> bigquery_external_table_task_taxi
+        download_taxi_dataset_task >> change_schema >> taxi_to_gcs_task #>> bigquery_external_table_task_taxi
