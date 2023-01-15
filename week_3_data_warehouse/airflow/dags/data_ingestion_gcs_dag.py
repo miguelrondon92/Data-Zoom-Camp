@@ -11,6 +11,7 @@ from google.cloud import storage
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
 import pyarrow.csv as pv
 import pyarrow.parquet as pq
+import pyarrow as pa
 import pandas as pd 
 from datetime import datetime
 
@@ -22,10 +23,6 @@ taxi_dataset_url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/"
 
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'trips_data_all')
-
-fhv_schema = pass 
-yellow_schema = pass 
-green_schema = pass 
 
 taxi_types = ["yellow", "green", "fhv"]
 
@@ -79,7 +76,7 @@ with DAG(
     schedule_interval="@monthly",
     default_args=default_args,
     start_date= datetime(2019, 1, 1), 
-    end_date= datetime(2021, 12, 30),
+    end_date= datetime(2021, 12, 2),
     catchup=True,
     max_active_runs=3,
     tags=['dtc-de'],
@@ -101,7 +98,7 @@ with DAG(
             python_callable=transform_schema,
             op_kwargs={
                 "parquet_file": f"{path_to_local_home}/{taxi}{date_time_eop}",
-                "taxi": {taxi}
+                "taxi": taxi
             }
         )
         # TODO: Homework - research and try XCOM to communicate output values between 2 tasks/operators

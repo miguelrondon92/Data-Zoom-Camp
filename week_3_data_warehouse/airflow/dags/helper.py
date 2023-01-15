@@ -1,23 +1,11 @@
-#import pyarrow.csv as pv
-#import pyarrow.parquet as pq
 import pyarrow as pa
-import pandas as pd 
 import pyarrow.parquet as pq 
 from datetime import datetime
 
-yellow_trip_2019_01_link= 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-10.parquet'
-yellow_trip_2022_05 = 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-05.parquet'
-
-yt_2019_01_file= '~/downloads/yellow_tripdata_2019-01.parquet'
-yt_2022_06_file= '~/downloads/yellow_tripdata_2022-06.parquet'
-yt_2022_05_file= '~/downloads/yellow_tripdata_2022-05.parquet'
-gr_2019_01_file= '~/downloads/green_tripdata_2019-01.parquet'
-fhv_2019_01_file= '~/downloads/fhv_tripdata_2019-01.parquet'
-
 yellow_taxi_schema= {
     'VendorID': pa.string(),
-    'tpep_pickup_datetime': pa.timestamp('ns'),
-    'tpep_dropoff_datetime': pa.timestamp('ns'),
+    'tpep_pickup_datetime': pa.timestamp('us'),
+    'tpep_dropoff_datetime': pa.timestamp('us'),
     'passenger_count': pa.int64(),
     'trip_distance': pa.float64(),
     'RatecodeID': pa.string(),
@@ -41,8 +29,8 @@ yellow_schema = [pa.field(x, y) for x, y in yellow_taxi_schema.items()]
 
 green_taxi_schema = {
     'VendorID': pa.string(),
-    'lpep_pickup_datetime': pa.timestamp('ns'),
-    'lpep_dropoff_datetime': pa.timestamp('ns'),
+    'lpep_pickup_datetime': pa.timestamp('us'),
+    'lpep_dropoff_datetime': pa.timestamp('us'),
     'store_and_fwd_flag': pa.string(),
     'RatecodeID': pa.string(),
     'PULocationID': pa.string(),				
@@ -66,8 +54,8 @@ green_schema = [pa.field(x, y) for x, y in green_taxi_schema.items()]
 
 fhv_taxi_schema = {
     'dispatching_base_num': pa.string(),
-    'pickup_datetime': pa.timestamp('ns'),
-    'dropOff_datetime': pa.timestamp('ns'), 
+    'pickup_datetime': pa.timestamp('us'),
+    'dropOff_datetime': pa.timestamp('us'), 
     'PUlocationID': pa.string(),
     'DOlocationID': pa.string(),
     'SR_Flag': pa.string(),

@@ -60,27 +60,13 @@ with DAG(
             },
         )
 
-        if colour == "yellow": 
-            CREATE_BQ_TBL_QUERY = (
-                f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET}.{colour}_{DATASET} \
-                PARTITION BY DATE({ds_col}) \
-                AS \
-                SELECT * EXCEPT (airport_fee) FROM {BIGQUERY_DATASET}.{colour}_{DATASET}_external_table;"
-            )
-        elif colour == "fhv":  
-            CREATE_BQ_TBL_QUERY = (
-                f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET}.{colour}_{DATASET} \
-                PARTITION BY DATE({ds_col}) \
-                AS \
-                SELECT * EXCEPT (SR_FLAG) FROM {BIGQUERY_DATASET}.{colour}_{DATASET}_external_table;"
-            )
-        else: 
-            CREATE_BQ_TBL_QUERY = (
-            f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET}.{colour}_{DATASET} \
-            PARTITION BY DATE({ds_col}) \
-            AS \
-            SELECT * FROM {BIGQUERY_DATASET}.{colour}_{DATASET}_external_table;"
-            )
+
+        CREATE_BQ_TBL_QUERY = (
+        f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET}.{colour}_{DATASET} \
+        PARTITION BY DATE({ds_col}) \
+        AS \
+        SELECT * FROM {BIGQUERY_DATASET}.{colour}_{DATASET}_external_table;"
+        )
 
         # Create a partitioned table from external table
         bq_create_partitioned_table_job = BigQueryInsertJobOperator(
