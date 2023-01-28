@@ -57,12 +57,12 @@ Change the mounting path. Replace it with the following:
 
 ```bash
 docker run -it \
-  -e POSTGRES_USER="root" \
-  -e POSTGRES_PASSWORD="root" \
+  -e POSTGRES_USER="postgres" \
+  -e POSTGRES_PASSWORD="postgres" \
   -e POSTGRES_DB="ny_taxi" \
-  -v $(pwd)/ny_taxi_postgres_data:/var/lib/postgresql/data \
-  -p 5432:5432 \
-  postgres:13
+  -v $(pwd)/pgdata:/var/lib/postgresql/data \
+  -p 5433:5432 \
+  postgres:15.1-alpine
 ```
 
 If you see that `ny_taxi_postgres_data` is empty after running
@@ -167,13 +167,13 @@ Running locally
 ```bash
 URL="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
 
-python ingest_data.py \
-  --user=root \
-  --password=root \
+python3 ingest_data.py \
+  --user=postgres \
+  --password=postgres \
   --host=localhost \
   --port=5432 \
   --db=ny_taxi \
-  --table_name=yellow_taxi_trips \
+  --table_name=green_taxi_trips \
   --url=${URL}
 ```
 
@@ -202,17 +202,17 @@ You can solve it with `.dockerignore`:
 Run the script with Docker
 
 ```bash
-URL="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
+URL="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/green/green_tripdata_2019-01.csv.gz"
 
 docker run -it \
-  --network=pg-network \
+  --network=2_docker_sql_default \
   taxi_ingest:v001 \
-    --user=root \
-    --password=root \
-    --host=pg-database \
+    --user=postgres \
+    --password=postgres \
+    --host=pgdatabase \
     --port=5432 \
     --db=ny_taxi \
-    --table_name=yellow_taxi_trips \
+    --table_name=green_taxi_trips \
     --url=${URL}
 ```
 
